@@ -8,6 +8,7 @@ stages:
   - test
   - plan
   - apply
+  - destroy
 
 include:
   - template: Security/SAST-IaC.latest.gitlab-ci.yml
@@ -41,3 +42,13 @@ apply:
   only:
     - main
   when: manual
+
+  destroy:
+  stage: destroy
+  script:
+    - cd Multi-cloud_Infrastucture
+    - terraform init
+    - terraform destroy -auto-approve
+  when: manual  
+  only:
+    - main
