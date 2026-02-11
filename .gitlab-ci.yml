@@ -1,4 +1,8 @@
-image: hashicorp/terraform:light
+image:
+  name: hashicorp/terraform:light
+  entrypoint:
+    - '/usr/bin/env'
+    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
 stages:
   - test
@@ -32,6 +36,8 @@ apply:
     - cd Multi-cloud_Infrastucture
     - terraform init
     - terraform apply -auto-approve tfplan
+  dependencies:
+    - plan
   only:
     - main
   when: manual
