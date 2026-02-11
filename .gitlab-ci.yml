@@ -43,7 +43,7 @@ apply:
     - main
   when: manual
 
-  destroy:
+destroy:
   stage: destroy
   script:
     - cd Multi-cloud_Infrastucture
