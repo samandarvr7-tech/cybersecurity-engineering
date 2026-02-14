@@ -23,6 +23,11 @@ variable "ssh_public_key" {
   type        = string
 }
 
+variable "windows_passwd" {
+  description = "windows vm passwords"
+  type        = string
+}
+
 resource "azurerm_resource_group" "example" {
   name     = "Multi-Cloud-Infrastructure"
   location = "Central India"
@@ -62,7 +67,7 @@ resource "azurerm_network_interface" "example" {
     subnet_id                     = azurerm_subnet.example.id
     
     private_ip_address_allocation = "Static"
-    private_ip_address            = "10.0.2.4"
+    private_ip_address            = "10.0.1.4"
     public_ip_address_id          = azurerm_public_ip.example.id
   }
 }
@@ -132,4 +137,3 @@ resource "azurerm_network_interface_security_group_association" "example" {
 output "gateway_public_ip" {
   value = azurerm_public_ip.example.ip_address
 }
-
