@@ -24,20 +24,17 @@ variable "ssh_public_key" {
 }
 
 resource "azurerm_resource_group" "example" {
-  name     = "Infrastructure"
+  name     = "Multi-Cloud-Infrastructure"
   location = "Central India"
 }
-# resource group name is required
-# loaction is required 
-# name is required
 
 resource "azurerm_virtual_network" "example" {
-  name                = "example-network"
+  name                = "gateway"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
 }
-# network_interface_ids are required
+
 resource "azurerm_subnet" "example" {
   name                 = "internal"
   resource_group_name  = azurerm_resource_group.example.name
@@ -45,7 +42,7 @@ resource "azurerm_subnet" "example" {
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-resource "azurerm_public_ip" "gateway_pip" {
+resource "azurerm_public_ip" "example" {
   name                = "gateway-public-ip"
   resource_group_name = azurerm_resource_group.example.name
   location            = azurerm_resource_group.example.location
@@ -53,7 +50,7 @@ resource "azurerm_public_ip" "gateway_pip" {
   sku                 = "Standard"
 }
 
-resource "azurerm_network_interface" "gateway_nic" {
+resource "azurerm_network_interface" "example" {
   name                = "gateway-nic"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
@@ -66,20 +63,19 @@ resource "azurerm_network_interface" "gateway_nic" {
     
     private_ip_address_allocation = "Static"
     private_ip_address            = "10.0.2.4"
-    public_ip_address_id          = azurerm_public_ip.gateway_pip.id
+    public_ip_address_id          = azurerm_public_ip.example.id
   }
 }
 
 resource "azurerm_linux_virtual_machine" "example" {
-  name                = "Infrastructure-machine"
+  name                = "Gateway"
   resource_group_name = azurerm_resource_group.example.name
   location            = azurerm_resource_group.example.location
   size                = "Standard_B2ats_v2"
   admin_username      = "azureuser"
   network_interface_ids = [
-    azurerm_network_interface.gateway_nic.id,
+    azurerm_network_interface.example.id,
   ]
-# size is requiered
   admin_ssh_key {
     username   = "azureuser"
     public_key = var.ssh_public_key
@@ -89,7 +85,6 @@ resource "azurerm_linux_virtual_machine" "example" {
     caching              = "ReadWrite"
     storage_account_type = "StandardSSD_LRS"
   }
-# os disk is required
   source_image_reference {
     publisher = "Canonical"
     offer     = "ubuntu-24_04-lts"
@@ -99,7 +94,7 @@ resource "azurerm_linux_virtual_machine" "example" {
 }
 
 resource "azurerm_network_security_group" "example" {
-  name                = "infrastructure-nsg"
+  name                = "gateway-nsg"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
 
@@ -130,10 +125,11 @@ resource "azurerm_network_security_group" "example" {
 }
 
 resource "azurerm_network_interface_security_group_association" "example" {
-  network_interface_id      = azurerm_network_interface.gateway_nic.id
+  network_interface_id      = azurerm_network_interface.example.id
   network_security_group_id = azurerm_network_security_group.example.id
 }
 
 output "gateway_public_ip" {
-  value = azurerm_public_ip.gateway_pip.ip_address
+  value = azurerm_public_ip.example.ip_address
 }
+
