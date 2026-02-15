@@ -3,6 +3,7 @@ resource "azurerm_virtual_network_peering" "indiac-indiag" {
   resource_group_name       = azurerm_resource_group.windows-client.name
   virtual_network_name      = azurerm_virtual_network.windows-client.name
   remote_virtual_network_id = azurerm_virtual_network.example.id
+  allow_forwarded_traffic = true
 }
 
 resource "azurerm_virtual_network_peering" "indiag-indiac" {
@@ -17,6 +18,7 @@ resource "azurerm_virtual_network_peering" "norway-india" {
   resource_group_name       = azurerm_resource_group.windows-ad.name
   virtual_network_name      = azurerm_virtual_network.windows-ad.name
   remote_virtual_network_id = azurerm_virtual_network.example.id
+  allow_forwarded_traffic = true
 }
 
 resource "azurerm_virtual_network_peering" "india-norway" {
