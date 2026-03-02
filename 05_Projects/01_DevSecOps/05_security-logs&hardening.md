@@ -11,9 +11,9 @@ I configured a modular CI architecture (`ci/trivy.yml`, `ci/semgrep.yml`) and in
 
 ### 2. Findings & Triage (Backend)
 
-[Semgrep Logs](./screenshots/back-semgrep-logs.png)
+![Semgrep Logs](./screenshots/back-semgrep-logs.png)
 
-[Trivy Logs](./screenshots/back-trivy-logs.png)
+![Trivy Logs](./screenshots/back-trivy-logs.png)
 
 1. Infrastructure Issues (Docker)**
 Both scanners flagged the Backend Dockerfile as high risk.
@@ -44,15 +44,15 @@ I rewrote the `Dockerfile.prod` to enforce security best practices:
 I cannot update the Python libraries without risking breaking the developer's code.
 *   **Action:** I created a `.trivyignore` file to acknowledge the risks (CVE-2024-33663, etc.) and unblock the pipeline. I generated a report for the backend developer to upgrade these packages in the next sprint.
 
-[Semgrep-Result](./screenshots/back-semgrep-final-logs.png)
+![Semgrep-Result](./screenshots/back-semgrep-final-logs.png)
 
-[Trivy-Result](./screenshots/back-trivy-final-logs.png)
+![Trivy-Result](./screenshots/back-trivy-final-logs.png)
 
 ### Findings & Triage (Frontend)
 
-[Semgrep Logs](./screenshots/front-semgrep-logs.png)
+![Semgrep Logs](./screenshots/front-semgrep-logs.png)
 
-[Trivy Logs](./screenshots/front-trivy-logs.png)
+![Trivy Logs](./screenshots/front-trivy-logs.png)
 
 1. Infrastructure Issues**
 *   **Issue:** The frontend was using `nginx:alpine` which runs as `root` by default.
@@ -76,9 +76,9 @@ Similar to the backend, updating `react-router` is a breaking change for the app
 *   **Action:** Added CVEs to `.trivyignore`.
 *   **Action:** Reported findings to the frontend developer.
 
-[Semgrep Logs](./screenshots/front-semgrep-final-logs.png)
+![Semgrep Logs](./screenshots/front-semgrep-final-logs.png)
 
-[Trivy Logs](./screenshots/front-trivy-final-logs.png)
+![Trivy Logs](./screenshots/front-trivy-final-logs.png)
 
 ### Final Validation
 After pushing the new Dockerfiles and Ignore files:
