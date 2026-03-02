@@ -1,23 +1,40 @@
-# Detection Engineering LAB
+# Security Engineering Portfolio
 
-In this LAB I will be simulating `detection engineering` by `building` my own environment, `exploiting` it, and `defending` from the attack.
+I am a Security Engineer specializing in building automated, secure infrastructures across hybrid cloud and on-premises environments. In this portfolio, you will find my methodology for mastering Detection Engineering—scaling from defending a single WebApp to securing inter-connected, multi-region cloud architectures. It also includes my production projects, demonstrating how I implement DevSecOps to automate both infrastructure and security.
 
-## The Overview of the Plan for this LAB
+## Stack
 
-*   First of all, we will start with `DVWA` and `Suricata`. We will open a droplet in Digital Ocean and deploy `Suricata` and `DVWA` there. We will set `DVWA` to the low level; since we are mainly focusing on detection, we will not be doing advanced attacks. After successfully exploiting `DVWA`, we will use `Suricata` logs to analyze packets, find `patterns` of an exploitation, and `write a rule` for further prevention of attacks.
+* **Automation (IaC & CI/CD):** `Terraform`, `Ansible`, `GitLab CI/CD`
 
-*   The next step will be learning `EDR`. For this, we will use `Wazuh SIEM` with `AD` and a `Windows` host. The cycle of an attack and defense will be the same as in the first phase. After completing Wazuh, we will add Zeek to our stack for behavioral analysis.
+* **Security & Detection:** `Wazuh (SIEM/XDR)`, `Suricata (IDS/IPS)`, `Zeek (NSM)`, `Semgrep (SAST)`, `Trivy`, `OWASP ZAP (DAST`
 
-*   Finally, after getting to know all tools that allow us to see attacks from all possible angles, we will start doing something more serious. There is a website which publishes real `PCAPs` of real exploitations: `malwaretrafficanalysis.net`. We will use those `PCAPs` in our lab to do the same: analyze `patterns` and `write rules` for prevention.
+* **Cloud Infrastructure:** `Azure`, `DigitalOcean`, `Hetzner`
 
-*   Another resource for imitation of real attacks is `ART (ATOMIC RED TEAM)`, which contains `scripts of real attacks`. This will also help us to `imitate attacks` on our lab so we can log them, analyze `patterns`, and `write a rule`.
+* **Physical Equipment:** `Mikrotik`, `Netgear`, `Dell Servers`
 
-*   Also, I consider taking real `CVEs` of enterprise apps (for example `Jira`), the old CVEs of course, so we can deploy that exact `vulnerable version` of the app, `exploit` it, and do our `detection`.
+* **Networking & Core Services:** `Cloudflare`, `Docker`, `Ntopng`, `Jira`, `dnsmasq`, `WireGuard`, `Nginx`, `DVWA`
 
-*   The ultimate `GOAL` for this lab is eventually to start taking new `CVEs`, testing them in the lab, `writing rules` for their prevention, and posting on `SOC Prime`.
+* **Offensive & Analytical Tools:** `Burp Suite`, `Atomic Red Team`, `Hydra`, `Wireshark`, `Sigma`, `YARA`, `Ghidra`
 
-## How it started
 
-Initially, I was an `Intern` as a `Sysadmin`, and luckily my mentors provided me with resources such as a Mikrotik Router, Netgear Switch, and DELL server. I built a topology imitating real corporate ones. My server was placed between the Router and Switch so it would be in `inline mode`, and `Suricata` could `drop` the `malicious packets`. 
+## Mastering Detection Engineering
 
-Eventually, I completed what I wanted to do, but after the internship, I no longer had resources and decided to `rebuild` it on the `cloud`, since I had free `credits` from the `Github student pack`. And that's how it started. Eventually, I started to learn about other tools like `SIEM` systems, `EDR/XDR`, and coming up with new ideas for upgrading my lab and enhancing my skills.
+**Preview (Bare-Metal Foundation):** Before migrating to the Cloud, I built a physical infrastructure using a Mikrotik router, a Netgear switch, and bare-metal servers. I deployed an inline IPS (Suricata) between the router and switch, allowing me to execute physical network attacks and engineer rules to drop malicious packets in real-time.
+
+### [1. WebApp Detection](01_WebApp_detection)
+The baseline phase. I deployed a containerized WebApp monitored by an IDS. Here, I execute manual web attacks (like SQL Injection), analyze the generated raw logs and PCAPs, and write custom signatures to detect and prevent exploitation.
+
+### [2. Automated Multi-Cloud Detection](02_Automated-Multi-Cloud-detection)
+Scaling up to a corporate-grade environment. I use Infrastructure as Code (Terraform) to deploy a Multi-Cloud network (Azure & DigitalOcean) linked via WireGuard. The environment includes an Active Directory domain and Windows endpoints monitored by an XDR (Wazuh). I execute lateral movement and domain attacks, using the XDR to perform log pattern analysis and engineer robust correlation rules.
+
+### 3. Advanced Threat Hunting
+Transitioning to real-world threat analysis using malware PCAPs from [Malware-Traffic-Analysis.net](https://www.malware-traffic-analysis.net). The focus here is deep packet inspection, identifying C2 beacons, and writing network signatures for active malware campaigns.
+
+### 4. Vulnerability Research (CVEs)
+The final stage of the pipeline. Recreating real-world CVEs in isolated testbeds to reverse-engineer the vulnerability. The goal is to write highly effective, behavior-based detection rules for immediate publication on platforms like **SOC Prime**.
+
+---
+
+## [Production Projects](05_Projects)
+
+In my Projects section, I share my DevSecOps experience from live production environments. This includes detailed runbooks on how I provision cloud infrastructure, implement Shift-Left security (SAST/SCA), configure edge protection (Cloudflare/Nginx), and troubleshoot complex pipeline deployments.

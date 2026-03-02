@@ -4,13 +4,13 @@
 * Suricata
 ## Analysing patterns
 * Note if you didnt turn on live monitoring before exploiting SQLi, turn it on and perform your SQLi again, to generate necessary logs.
-* Or look at the [logs](./logs.json) I collected
+* Or look at the [logs](./02_logs.json) I collected
 * From logs we can analyse that SQLi are in URI part of the packets, so we should focus on this part of packets.
 * To exploit SQLi, attackers should first of all find number of columns, by using `ORDER BY` or `UNION SELECT`, so we can prevent/predict SQLi in this phase before giving up users credentials
 * So the patterns are `ORDER BY` or `UNION SELECT`
 ## Signature writing
 * If you are not familiar with signature syntaxes, look for [Suricata Rules section](https://docs.suricata.io/en/suricata-8.0.2/index.html), and learn `Rule formats`, `Meta keywords`, and `HTTP keywords`
-* We should write our rules /var/lib/suricata/rules/ in this derectory, create the exact file which you meantioned in Suricata [configuration](./DVWA&Suricata.md) file, in my example its /var/lib/suricata/rules/user.rules. Start editing the file with vim
+* We should write our rules /var/lib/suricata/rules/ in this derectory, create the exact file which you meantioned in Suricata configuration file, in my example its /var/lib/suricata/rules/user.rules. Start editing the file with vim
 ```
 alert http any any -> 165.232.172.9 4280 (msg: "Potential sql injection attempt"; http.method; content: "GET"; http.uri; content: "order"; nocase; content: "by"; nocase; classtype: T1190; sid: 8365772; rev: 1;)
 ```
