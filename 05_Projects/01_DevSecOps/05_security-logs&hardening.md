@@ -204,3 +204,43 @@ server_tokens off;
 
 **2. Final Verdict:**
 The application has passed the DAST audit. All actionable High risks have been mitigated. The remaining Low/Informational warnings are documented configuration choices required for application functionality.
+
+```
+WARN-NEW: A Server Error response code was returned by the server [100000] x 49 
+	https://cvpilot.uz/analyses (503 Service Unavailable)
+	https://cvpilot.uz/api/internal/analysis-callback (503 Service Unavailable)
+	https://cvpilot.uz/job-descriptions (503 Service Unavailable)
+	https://cvpilot.uz/resumes (503 Service Unavailable)
+	https://cvpilot.uz/taxonomy/skills/10 (503 Service Unavailable)
+WARN-NEW: Unexpected Content-Type was returned [100001] x 104 
+	https://cvpilot.uz/auth/login (405 Method Not Allowed)
+	https://cvpilot.uz/auth/me (200 OK)
+	https://cvpilot.uz/auth/logout (405 Method Not Allowed)
+	https://cvpilot.uz/health (200 OK)
+	https://cvpilot.uz/job-descriptions?skip=0&limit=50 (200 OK)
+WARN-NEW: In Page Banner Information Leak [10009] x 12 
+	https://cvpilot.uz/auth/login (405 Method Not Allowed)
+	https://cvpilot.uz/auth/logout (405 Method Not Allowed)
+	https://cvpilot.uz/job-descriptions (405 Method Not Allowed)
+	https://cvpilot.uz/resumes (405 Method Not Allowed)
+	https://cvpilot.uz/resumes/10 (405 Method Not Allowed)
+WARN-NEW: CSP: Failure to Define Directive with No Fallback [10055] x 12 
+	https://cvpilot.uz/auth/me (200 OK)
+	https://cvpilot.uz/auth/me (200 OK)
+	https://cvpilot.uz/auth/me (200 OK)
+	https://cvpilot.uz/auth/login (405 Method Not Allowed)
+	https://cvpilot.uz/auth/login (405 Method Not Allowed)
+WARN-NEW: SQL Injection [40018] x 28 
+	https://cvpilot.uz/analyses (405 Method Not Allowed)
+	https://cvpilot.uz/resumes (503 Service Unavailable)
+	https://cvpilot.uz/api/internal/analysis-callback (503 Service Unavailable)
+	https://cvpilot.uz/taxonomy/skills/10 (405 Method Not Allowed)
+	https://cvpilot.uz/api/internal/analysis-callback (503 Service Unavailable)
+WARN-NEW: Cross-Origin-Resource-Policy Header Missing or Invalid [90004] x 13 
+	https://cvpilot.uz/openapi.json (200 OK)
+	https://cvpilot.uz/auth/me (200 OK)
+	https://cvpilot.uz/auth/me (200 OK)
+	https://cvpilot.uz/auth/me (200 OK)
+	https://cvpilot.uz/health (200 OK)
+FAIL-NEW: 0	FAIL-INPROG: 0	WARN-NEW: 6	WARN-INPROG: 0	INFO: 0	IGNORE: 0	PASS: 115
+```
