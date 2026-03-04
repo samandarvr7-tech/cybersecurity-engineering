@@ -81,12 +81,6 @@ Similar to the backend, updating `react-router` is a breaking change for the app
 
 ![Trivy Logs](./screenshots/front-trivy-final-logs.png)
 
-### Final Validation
-After pushing the new Dockerfiles and Ignore files:
-*   **Semgrep:** 0 Findings.
-*   **Trivy:** 0 Findings (Clean pipeline).
-*   **Docker Status:** All containers running Healthy as non-root users.
-
 ### Final Validation (SAST/SCA)
 After pushing the new Dockerfiles and Ignore files:
 *   **Semgrep:** 0 Findings.
@@ -204,6 +198,8 @@ server_tokens off;
 
 **2. Final Verdict:**
 The application has passed the DAST audit. All actionable High risks have been mitigated. The remaining Low/Informational warnings are documented configuration choices required for application functionality.
+
+### Post-Remediation Scan Results
 
 ```
 WARN-NEW: A Server Error response code was returned by the server [100000] x 49 
