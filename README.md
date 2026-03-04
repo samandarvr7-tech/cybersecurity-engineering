@@ -6,7 +6,7 @@ I am a Security Engineer specializing in building automated, secure infrastructu
 
 * **Automation (IaC & CI/CD):** `Terraform`, `Ansible`, `GitLab CI/CD`
 
-* **Security & Detection:** `Wazuh (SIEM/XDR)`, `Suricata (IDS/IPS)`, `Zeek (NSM)`, `Semgrep (SAST)`, `Trivy`, `OWASP ZAP (DAST`
+* **Security & Detection:** `Wazuh (SIEM/XDR)`, `Suricata (IDS/IPS)`, `Zeek (NSM)`, `Semgrep (SAST)`, `Trivy (CSP)`, `OWASP ZAP (DAST)`
 
 * **Cloud Infrastructure:** `Azure`, `DigitalOcean`, `Hetzner`
 
