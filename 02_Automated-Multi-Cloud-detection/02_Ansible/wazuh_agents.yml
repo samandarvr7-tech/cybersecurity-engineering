@@ -1,0 +1,73 @@
+---
+- name: Master Wazuh Agent Configuration (Linux Gateway)
+  hosts: gateway
+  become: true
+  tasks:
+    - name: Download Wazuh GPG Key
+      shell: "curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && chmod 644 /usr/share/keyrings/wazuh.gpg"
+    
+    - name: Add Wazuh Repo
+      lineinfile:
+        path: /etc/apt/sources.list.d/wazuh.list
+        line: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+        create: yes
+
+    - name: Install Agent (Version 4.14.3)
+      apt:
+        name: wazuh-agent=4.14.3-1
+        state: present
+        update_cache: yes
+        allow_downgrade: yes
+
+    - name: Configure Agent IP (Tunnel)
+      lineinfile:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<address>.*</address>'
+        line: '      <address>10.8.0.1</address>'
+      notify: Restart Wazuh
+
+    # ==========================================
+    # LOG CORRELATION SECTION
+    # ==========================================
+    
+    - name: Configure Master Log Shipping (Suricata & Zeek)
+      blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        marker: "<!-- {mark} ANSIBLE MANAGED BLOCK: SENSORS -->"
+        insertafter: '<ossec_config>'
+        block: |
+          <!-- Suricata Logs -->
+          <localfile>
+            <log_format>json</log_format>
+            <location>/var/log/suricata/eve.json</location>
+          </localfile>
+
+          <!-- Zeek Logs -->
+          <localfile>
+            <log_format>json</log_format>
+            <location>/var/log/zeek/conn.log</location>
+          </localfile>
+          <localfile>
+            <log_format>json</log_format>
+            <location>/var/log/zeek/dns.log</location>
+          </localfile>
+          <localfile>
+            <log_format>json</log_format>
+            <location>/var/log/zeek/http.log</location>
+          </localfile>
+      notify: Restart Wazuh
+
+    - name: Start and Enable Wazuh Agent
+      service:
+        name: wazuh-agent
+        state: started
+        enabled: yes
+
+  # ==========================================
+  # THE SAVIOR: HANDLERS
+  # ==========================================
+  handlers:
+    - name: Restart Wazuh
+      service:
+        name: wazuh-agent
+        state: restarted

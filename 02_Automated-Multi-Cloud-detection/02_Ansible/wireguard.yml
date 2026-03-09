@@ -1,0 +1,71 @@
+---
+- name: 1. Setup WireGuard & Fetch Keys
+  hosts: gateway, siem
+  become: true
+  tasks:
+    - name: Install WireGuard
+      apt:
+        name: wireguard
+        state: present
+
+    - name: Check if private key exists
+      stat:
+        path: /etc/wireguard/privatekey
+      register: key_check
+
+    - name: Generate Private Key
+      shell: "wg genkey | tee /etc/wireguard/privatekey"
+      when: not key_check.stat.exists
+
+    - name: Generate Public Key
+      shell: "cat /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey"
+      when: not key_check.stat.exists
+
+    - name: Read Private Key
+      slurp:
+        src: /etc/wireguard/privatekey
+      register: private_key_b64
+
+    - name: Read Public Key
+      slurp:
+        src: /etc/wireguard/publickey
+      register: public_key_b64
+
+    - name: Store Keys in Variables (Magic Step!)
+      set_fact:
+        private_key_content: "{{ private_key_b64['content'] | b64decode | trim }}"
+        public_key_content: "{{ public_key_b64['content'] | b64decode | trim }}"
+
+- name: 2. Configure DigitalOcean (Server)
+  hosts: siem
+  become: true
+  tasks:
+    - name: Create WG Config
+      template:
+        src: templates/wg0_server.conf.j2
+        dest: /etc/wireguard/wg0.conf
+      notify: Restart WireGuard
+
+  handlers:
+    - name: Restart WireGuard
+      service:
+        name: wg-quick@wg0
+        state: restarted
+        enabled: yes
+
+- name: 3. Configure Azure Gateway (Client)
+  hosts: gateway
+  become: true
+  tasks:
+    - name: Create WG Config
+      template:
+        src: templates/wg0_client.conf.j2
+        dest: /etc/wireguard/wg0.conf
+      notify: Restart WireGuard
+
+  handlers:
+    - name: Restart WireGuard
+      service:
+        name: wg-quick@wg0
+        state: restarted
+        enabled: yes

@@ -1,0 +1,10 @@
+[Interface]
+Address = 10.8.0.1/24
+MTU = 1360
+ListenPort = 51820
+PrivateKey = {{ hostvars[inventory_hostname]['private_key_content'] }}
+
+[Peer]
+# This is the Azure Gateway Client
+PublicKey = {{ hostvars[groups['gateway'][0]]['public_key_content'] }}
+AllowedIPs = 10.8.0.2/32

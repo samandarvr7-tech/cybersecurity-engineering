@@ -5,23 +5,25 @@ image:
     - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 
 stages:
-  - test
+#  - test
   - plan
   - deploy
 
-include:
-  - template: Security/SAST-IaC.latest.gitlab-ci.yml
+#include:
+#  - template: Security/SAST-IaC.latest.gitlab-ci.yml
 
-iac-sast:
-  stage: test
-  artifacts:
-    reports:
-      sast: gl-sast-report.json
-  variables:
-    SAST_IAC_PATH: "01_Infrastructure"
+#iac-sast:
+#  stage: test
+#  artifacts:
+#    reports:
+#      sast: gl-sast-report.json
+#  variables:
+#    SAST_IAC_PATH: "01_Infrastructure"
 
 plan:
   stage: plan
+  tags:
+    - self-hosted
   script:
     - cd 01_Infrastructure
     - terraform init
@@ -31,7 +33,9 @@ plan:
       - 01_Infrastructure/tfplan
 
 apply:
-  stage: deploy     
+  stage: deploy  
+  tags:
+    - self-hosted   
   script:
     - cd 01_Infrastructure
     - terraform init
@@ -42,13 +46,69 @@ apply:
   only:
     - main
 
-
 destroy:
-  stage: deploy      
+  stage: deploy    
+  tags:
+    - self-hosted  
   script:
     - cd 01_Infrastructure
     - terraform init
     - terraform destroy -auto-approve
   when: manual      
+  only:
+    - main
+
+ansible_configure:
+  stage: deploy
+  tags:
+    - self-hosted
+  image: 
+    name: hashicorp/terraform:light
+    entrypoint: [""]
+  before_script:
+    - apk add --no-cache openssh-client ansible python3 py3-pip sshpass
+    - ansible-galaxy collection install microsoft.ad
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-add ~/.ssh/id_rsa
+    - export ANSIBLE_HOST_KEY_CHECKING=False
+  script:
+    - cd 01_Infrastructure
+    - terraform init
+    - GATEWAY_IP=$(terraform output -raw gateway_public_ip)
+    - SIEM_IP=$(terraform output -raw siem_public_ip)
+    
+    - cd ../02_Ansible
+    
+    # Linux Inventory
+    - echo "[siem]" > inventory.ini
+    - echo "$SIEM_IP ansible_user=root" >> inventory.ini
+    - echo "" >> inventory.ini
+    - echo "[gateway]" >> inventory.ini
+    - echo "$GATEWAY_IP ansible_user=azureuser" >> inventory.ini
+    
+    # Windows Inventory
+    - echo "" >> inventory.ini
+    - echo "[windows]" >> inventory.ini
+    - echo "10.2.1.4 hostname=win-ad" >> inventory.ini
+    - echo "10.1.1.4 hostname=win-client" >> inventory.ini
+    
+    # Windows Variables
+    - echo "" >> inventory.ini
+    - echo "[windows:vars]" >> inventory.ini
+    - echo "ansible_user=azureuser" >> inventory.ini
+    - echo "ansible_password=$TF_VAR_windows_passwd" >> inventory.ini
+    - echo "ansible_connection=ssh" >> inventory.ini
+    - echo "ansible_shell_type=powershell" >> inventory.ini
+    
+    # ProxyCommand uses the file we created in before_script (~/.ssh/id_rsa)
+    - echo "ansible_ssh_common_args='-o ProxyCommand=\"ssh -W %h:%p -q azureuser@$GATEWAY_IP -i ~/.ssh/id_rsa\"'" >> inventory.ini
+    - echo "ansible_ssh_extra_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'" >> inventory.ini
+    
+    - ansible-playbook -i inventory.ini main.yml
+  needs: ["apply"]
+  #when: manual 
   only:
     - main

@@ -18,3 +18,7 @@ resource "digitalocean_droplet" "wazuh-server" {
   size    = "s-2vcpu-4gb"
   ssh_keys = [digitalocean_ssh_key.wazuh-server.fingerprint]
 }
+
+output "siem_public_ip" {
+  value = digitalocean_droplet.wazuh-server.ipv4_address
+}

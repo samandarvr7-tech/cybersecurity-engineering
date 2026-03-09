@@ -1,0 +1,10 @@
+---
+# main.yml
+- import_playbook: setup_linux.yml
+- import_playbook: wireguard.yml
+- import_playbook: suricata_deploy.yml
+- import_playbook: wazuh_agents.yml
+- import_playbook: wazuh_indexer.yml
+- import_playbook: windows.yml  
+- import_playbook: disable.yml 
+- import_playbook: art.yml

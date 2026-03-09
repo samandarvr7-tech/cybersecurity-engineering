@@ -1,0 +1,21 @@
+# Inside suricata.yaml.j2 (Snippets of what to change)
+vars:
+  # Limit network to only what we care about to save CPU
+  HOME_NET: "[10.0.0.0/8]" 
+
+# NEUTER THE MEMORY USAGE!
+# Force Suricata to use very little RAM
+flow:
+  memcap: 32mb
+  hash-size: 65536
+  prealloc: 10000
+  emergency-recovery: 30
+
+stream:
+  memcap: 32mb
+  prealloc-sessions: 2048
+
+# Single thread for 1vCPU
+threading:
+  set-cpu-affinity: no
+  detect-thread-ratio: 1.0

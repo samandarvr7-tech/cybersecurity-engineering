@@ -1,0 +1,28 @@
+---
+- name: Install Atomic Red Team on Windows Client
+  hosts: 10.1.1.4
+  tasks:
+    - name: Install ART Framework and Atomics
+      ansible.windows.win_shell: |
+        # 1. Set Security Protocol for GitHub
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        
+        # 2. Force Install NuGet Provider (Silently)
+        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+        
+        # 3. Trust the Gallery (Silently)
+        Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+        
+        # 4. Download and Install ART
+        IEX (IWR 'https://raw.githubusercontent.com/redcanaryco/invoke-atomicredteam/master/install-atomicredteam.ps1' -UseBasicParsing)
+        Install-AtomicRedTeam -GetAtomics -Force
+        
+        # 5. Import the Module so it persists in the session (Optional, but good check)
+        Import-Module "C:\AtomicRedTeam\invoke-atomicredteam\Invoke-AtomicRedTeam.psm1" -Force
+      args:
+        # Check if the folder exists so we don't run this every time (Idempotency)
+        creates: 'C:\AtomicRedTeam\invoke-atomicredteam'
+    - name: Add ART to PowerShell Profile (So it works when I RDP in!)
+      ansible.windows.win_shell: |
+        if (!(Test-Path $PROFILE)) { New-Item -Type File -Path $PROFILE -Force }
+        Add-Content -Path $PROFILE -Value "Import-Module 'C:\AtomicRedTeam\invoke-atomicredteam\Invoke-AtomicRedTeam.psm1' -Force"

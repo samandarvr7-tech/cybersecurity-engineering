@@ -100,6 +100,21 @@ resource "azurerm_linux_virtual_machine" "example" {
     sku       = "server-gen1"
     version   = "latest"
   }
+  custom_data = base64encode(<<-EOF
+      #!/bin/bash
+        export DEBIAN_FRONTEND=noninteractive
+        sysctl -w net.ipv4.ip_forward=1
+        echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+        iptables -t nat -A POSTROUTING -s 10.0.0.0/8 ! -d 10.0.0.0/8 -o eth0 -j MASQUERADE
+        iptables -t nat -A POSTROUTING -s 10.0.0.0/8 -d 10.0.0.0/8 -j MASQUERADE
+        iptables -I FORWARD 1 -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
+        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
+        apt-get update
+        apt-get install -y iptables-persistent netfilter-persistent
+        netfilter-persistent save
+    EOF
+  )
 }
 
 resource "azurerm_network_security_group" "example" {
@@ -137,6 +152,8 @@ resource "azurerm_network_interface_security_group_association" "example" {
   network_interface_id      = azurerm_network_interface.example.id
   network_security_group_id = azurerm_network_security_group.example.id
 }
+
+
 
 output "gateway_public_ip" {
   value = azurerm_public_ip.example.ip_address

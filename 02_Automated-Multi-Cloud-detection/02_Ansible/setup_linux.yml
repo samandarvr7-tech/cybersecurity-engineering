@@ -1,0 +1,95 @@
+---
+- name: Configure Linux Infrastructure (Gateway & SIEM)
+  hosts: gateway, siem
+  become: true
+  vars:
+    swap_size: "4G"
+
+  tasks:
+    # --- TASK 0: PATIENCE (Fixes the Lock Error) ---
+    - name: Wait for any background apt processes to finish
+      raw: "while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done"
+
+    # --- TASK 1: SURVIVAL (SWAP) ---
+    - name: Check if swap file exists
+      stat:
+        path: /swapfile
+      register: swap_file_check
+
+    - name: Create swap file
+      command: fallocate -l {{ swap_size }} /swapfile
+      when: not swap_file_check.stat.exists
+
+    - name: Set swap permissions
+      file:
+        path: /swapfile
+        mode: '0600'
+
+    - name: Format swap file
+      command: mkswap /swapfile
+      when: not swap_file_check.stat.exists
+
+    - name: Enable swap
+      command: swapon /swapfile
+      when: not swap_file_check.stat.exists
+
+    - name: Make swap permanent
+      lineinfile:
+        path: /etc/fstab
+        line: '/swapfile none swap sw 0 0'
+        state: present
+
+    # --- TASK 2: INSTALL DOCKER (Robust Method) ---
+    - name: Create Keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - gnupg
+          - python3-docker
+        state: present
+        update_cache: yes
+
+    # Fixes the 'CustomHTTPSConnection' error
+    - name: Add Docker GPG Key (Shell)
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
+        state: present
+        filename: docker
+
+    - name: Install Docker Engine
+      apt:
+        name: 
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add current user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes

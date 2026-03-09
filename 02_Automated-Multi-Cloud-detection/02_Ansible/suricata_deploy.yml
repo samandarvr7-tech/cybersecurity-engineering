@@ -1,0 +1,83 @@
+---
+- name: Deploy Hardened Suricata & Optimized Zeek
+  hosts: gateway
+  become: true
+  tasks:
+    # ==========================================
+    # PHASE 1: SURICATA (IDS/IPS)
+    # ==========================================
+    - name: Create Suricata Directories
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: "{{ item.mode }}"
+        owner: "{{ item.owner | default('root') }}"
+        group: "{{ item.group | default('root') }}"
+      loop:
+        - { path: '/opt/suricata', mode: '0755' }
+        - { path: '/etc/suricata', mode: '0755' }
+        # 10002 matches the non-root user in our Dockerfile
+        - { path: '/var/log/suricata', mode: '0750', owner: '10002', group: '10002' }
+
+    - name: Copy Suricata Docker Build Files
+      copy:
+        src: docker/suricata/
+        dest: /opt/suricata/
+
+    - name: Push Custom Suricata Config (Idempotent)
+      template:
+        src: docker/suricata/suricata.yaml.j2
+        dest: /etc/suricata/suricata.yaml
+      notify: Restart Suricata
+
+    - name: Build Suricata Image
+      community.docker.docker_image:
+        name: my-suricata
+        build:
+          path: /opt/suricata
+        source: build
+
+    - name: Run Suricata Container
+      community.docker.docker_container:
+        name: suricata
+        image: my-suricata
+        state: started
+        restart_policy: always
+        network_mode: host
+        capabilities:
+          - NET_ADMIN
+          - SYS_NICE
+          - NET_RAW
+        volumes:
+          - /var/log/suricata:/var/log/suricata
+          # MAGIC: Mount ONLY the config file, so we don't delete the rules folder!
+          - /etc/suricata/suricata.yaml:/etc/suricata/suricata.yaml
+
+    # ==========================================
+    # PHASE 2: ZEEK (Network Metadata)
+    # ==========================================
+    - name: Create Zeek Log Directory
+      file:
+        path: /var/log/zeek
+        state: directory
+        mode: '0755'
+
+    - name: Run Zeek Container
+      community.docker.docker_container:
+        name: zeek
+        image: blacktop/zeek:latest
+        state: started
+        restart_policy: always
+        network_mode: host
+        volumes:
+          - /var/log/zeek:/pcap
+        # MAGIC: Force Zeek to output JSON so Wazuh can read it easily!
+        command: zeek -i eth0 local LogAscii::use_json=T
+        
+  # ==========================================
+  # HANDLERS (Triggers when files change)
+  # ==========================================
+  handlers:
+    - name: Restart Suricata
+      command: docker restart suricata
+      ignore_errors: yes

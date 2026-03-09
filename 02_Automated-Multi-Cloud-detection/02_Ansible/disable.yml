@@ -1,0 +1,38 @@
+---
+- name: Disable Windows Security (The Nuclear Option)
+  hosts: windows
+  tasks:
+    # 1. Kill the Antivirus Feature entirely
+    - name: Uninstall Windows Defender Feature
+      ansible.windows.win_feature:
+        name: Windows-Defender
+        state: absent
+      register: defender_removal
+
+    # 2. Kill the Firewall via Registry (Bypasses API blocks)
+    - name: Disable Firewall Profiles via Registry
+      ansible.windows.win_regedit:
+        path: HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\{{ item }}
+        name: EnableFirewall
+        data: 0
+        type: dword
+        state: present
+      loop:
+        - DomainProfile
+        - PublicProfile
+        - StandardProfile
+
+    # 3. Disable UAC (Makes ART tests run without popups)
+    - name: Disable UAC
+      ansible.windows.win_regedit:
+        path: HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System
+        name: EnableLUA
+        data: 0
+        type: dword
+        state: present
+      register: uac_result
+
+    # 4. REBOOT IS MANDATORY to remove the Defender drivers
+    - name: Reboot to apply security destruction
+      ansible.windows.win_reboot:
+      when: defender_removal.changed or uac_result.changed

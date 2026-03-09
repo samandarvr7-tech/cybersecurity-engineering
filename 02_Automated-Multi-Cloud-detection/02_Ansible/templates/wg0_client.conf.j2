@@ -1,0 +1,10 @@
+[Interface]
+Address = 10.8.0.2/24
+PrivateKey = {{ hostvars[inventory_hostname]['private_key_content'] }}
+
+[Peer]
+# This is the DigitalOcean Server
+PublicKey = {{ hostvars[groups['siem'][0]]['public_key_content'] }}
+Endpoint = {{ hostvars[groups['siem'][0]]['inventory_hostname'] }}:51820
+AllowedIPs = 10.8.0.0/24
+PersistentKeepalive = 25

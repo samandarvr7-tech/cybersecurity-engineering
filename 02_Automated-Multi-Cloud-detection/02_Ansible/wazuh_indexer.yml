@@ -1,0 +1,49 @@
+---
+- name: Deploy Wazuh SIEM (Sequential)
+  hosts: siem
+  become: true
+  tasks:
+    - name: 1. Clean old installations (Nuclear Option)
+      file:
+        path: /opt/wazuh
+        state: absent
+
+    - name: 2. Clone official Wazuh Docker repo
+      git:
+        repo: https://github.com/wazuh/wazuh-docker.git
+        dest: /opt/wazuh
+        version: v4.14.3
+
+    - name: 3. Run Cert Generator
+      # We use 'docker compose run' and ensure it writes to the bind mount
+      shell: "docker compose -f generate-indexer-certs.yml run --rm generator"
+      args:
+        chdir: /opt/wazuh/single-node
+      
+    - name: 4. Verify Certs Exist (Debug Step)
+      stat:
+        path: /opt/wazuh/single-node/config/wazuh_indexer_ssl_certs/admin-key.pem
+      register: cert_check
+
+    - name: Fail if certs are missing
+      fail:
+        msg: "Certificates failed to generate! Check the generator logs."
+      when: not cert_check.stat.exists
+
+    - name: 5. Start Wazuh Indexer ONLY
+      shell: "docker compose up -d wazuh.indexer"
+      args:
+        chdir: /opt/wazuh/single-node
+
+    - name: 6. Wait for Indexer (9200)
+      wait_for:
+        host: 127.0.0.1
+        port: 9200
+        delay: 30
+        timeout: 600
+        state: started
+
+    - name: 7. Start Manager and Dashboard
+      shell: "docker compose up -d wazuh.manager wazuh.dashboard"
+      args:
+        chdir: /opt/wazuh/single-node

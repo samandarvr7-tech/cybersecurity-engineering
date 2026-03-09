@@ -1,0 +1,112 @@
+---
+# =========================================================
+# PHASE 1: ACTIVE DIRECTORY SERVER (10.2.1.4)
+# =========================================================
+- name: 1. Configure Domain Controller (AD)
+  hosts: 10.2.1.4
+  tasks:
+    - name: Install AD Domain Services
+      ansible.windows.win_feature:
+        name: AD-Domain-Services
+        include_management_tools: yes
+        include_sub_features: yes
+        state: present
+
+    - name: Create Domain (Forest)
+      microsoft.ad.domain:
+        dns_domain_name: corp.cvpilot.local
+        # We reuse the password variable we injected in the CI pipeline!
+        safe_mode_password: "{{ ansible_password }}"
+      register: ad_install
+
+    - name: Reboot if AD was just installed
+      ansible.windows.win_reboot:
+      when: ad_install.reboot_required
+
+# =========================================================
+# PHASE 2: WINDOWS CLIENT (10.1.1.4)
+# =========================================================
+- name: 2. Configure Windows Client (Join Domain)
+  hosts: 10.1.1.4
+  tasks:
+    - name: Set DNS to point to the AD Server
+      ansible.windows.win_dns_client:
+        adapter_names: '*'
+        ipv4_addresses: 10.2.1.4
+
+    - name: Join Domain
+      microsoft.ad.membership:
+        dns_domain_name: corp.cvpilot.local
+        domain_admin_user: azureuser
+        domain_admin_password: "{{ ansible_password }}"
+        state: domain
+      register: domain_join
+
+    - name: Reboot if Client just joined the domain
+      ansible.windows.win_reboot:
+      when: domain_join.reboot_required
+
+# =========================================================
+# PHASE 3: SECURITY TOOLS (SYSMON & WAZUH ON BOTH)
+# =========================================================
+- name: 3. Install Sysmon & Wazuh Agent
+  hosts: windows
+  tasks:
+    - name: Download Sysmon
+      ansible.windows.win_get_url:
+        url: "https://live.sysinternals.com/Sysmon64.exe"
+        dest: "C:\\Sysmon64.exe"
+
+    - name: Download SwiftOnSecurity Sysmon Config
+      ansible.windows.win_get_url:
+        url: "https://raw.githubusercontent.com/SwiftOnSecurity/sysmon-config/master/sysmonconfig-export.xml"
+        dest: "C:\\sysmonconfig.xml"
+
+    - name: Install and Start Sysmon
+      ansible.windows.win_command: "C:\\Sysmon64.exe -accepteula -i C:\\sysmonconfig.xml"
+      register: sysmon_install
+      # ADD 1242 TO THE LIST!
+      failed_when: sysmon_install.rc not in [0, 1152, 1242]
+
+    - name: Download Wazuh Agent
+      ansible.windows.win_get_url:
+        url: "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.3-1.msi"
+        dest: "C:\\wazuh-agent.msi"
+
+    - name: Install Wazuh Agent (NO QUOTES IN THE COMMAND!)
+      ansible.windows.win_package:
+        path: "C:\\wazuh-agent.msi"
+        # Notice: No quotes around 10.8.0.1 or the hostname!
+        arguments: "/q WAZUH_MANAGER=10.8.0.1 WAZUH_REGISTRATION_SERVER=10.8.0.1 WAZUH_AGENT_NAME={{ inventory_hostname }}"
+        state: present
+
+    - name: Fix Wazuh Config - Remove bad quotes
+      ansible.windows.win_shell: |
+        $path = "C:\Program Files (x86)\ossec-agent\ossec.conf"
+        (Get-Content $path) -replace "'10.8.0.1'", "10.8.0.1" | Set-Content $path
+        (Get-Content $path) -replace "''10.8.0.1''", "10.8.0.1" | Set-Content $path
+      notify: Restart WazuhSvc
+
+    - name: Fix Wazuh Config - Remove bad quotes from agent_name
+      ansible.windows.win_shell: |
+        $path = "C:\Program Files (x86)\ossec-agent\ossec.conf"
+        # Regex to replace <agent_name>'something'</agent_name> with <agent_name>something</agent_name>
+        (Get-Content $path) -replace "<agent_name>'(.+)'</agent_name>", "<agent_name>`$1</agent_name>" | Set-Content $path
+      notify: Restart WazuhSvc
+
+    - name: Tell Wazuh to monitor Sysmon
+      ansible.windows.win_shell: |
+        $path = "C:\Program Files (x86)\ossec-agent\ossec.conf"
+        $xml = Get-Content $path -Raw
+        if ($xml -notmatch "Microsoft-Windows-Sysmon") {
+            $sysmonBlock = "`r`n  <localfile>`r`n    <location>Microsoft-Windows-Sysmon/Operational</location>`r`n    <log_format>eventchannel</log_format>`r`n  </localfile>`r`n</ossec_config>"
+            $newXml = $xml -replace "</ossec_config>", $sysmonBlock
+            Set-Content -Path $path -Value $newXml
+        }
+      notify: Restart WazuhSvc
+
+  handlers:
+    - name: Restart WazuhSvc
+      ansible.windows.win_service:
+        name: WazuhSvc
+        state: restarted
